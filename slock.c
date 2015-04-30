@@ -83,21 +83,25 @@ readpw(Display *dpy, char *passwd)
 		if (ev.type == KeyPress) {
 			buf[0] = 0;
 			num = XLookupString(&ev.xkey, buf, sizeof buf, &ksym, 0);
+
 			if (IsKeypadKey(ksym)) {
 				if (ksym == XK_KP_Enter)
 					ksym = XK_Return;
 				else if (ksym >= XK_KP_0 && ksym <= XK_KP_9)
 					ksym = (ksym - XK_KP_0) + XK_0;
 			}
+
 			if (IsFunctionKey(ksym) ||
 			    IsKeypadKey(ksym) ||
 			    IsMiscFunctionKey(ksym) ||
 			    IsPFKey(ksym) ||
 			    IsPrivateKeypadKey(ksym))
 				continue;
+
 			switch (ksym) {
 			case XK_Return:
 				passwd[len] = 0;
+
 				return;
 			case XK_Escape:
 				len = 0;
@@ -107,35 +111,46 @@ readpw(Display *dpy, char *passwd)
 					--len;
 				break;
 			default:
-				if (num && !iscntrl((int) buf[0]) && (len + num < PASSLEN)) {
+				if (num && !iscntrl((int) buf[0])
+				    && len + num < PASSLEN) {
 					memcpy(passwd + len, buf, num);
 					len += num;
 					passwd[len] = 0;
 				}
 				break;
 			}
+
 			if (llen == 0 && len != 0) {
-				for (screen = 0; screen < nscreens; screen++) {
-					XSetWindowBackground(dpy, locks[screen]->win, locks[screen]->colors[INPUT]);
+				for (screen = 0; screen < nscreens; ++screen) {
+					XSetWindowBackground(dpy,
+					  locks[screen]->win,
+					  locks[screen]->colors[INPUT]);
 					XClearWindow(dpy, locks[screen]->win);
 				}
 			} else if (llen != 0 && len == 0) {
-				for (screen = 0; screen < nscreens; screen++) {
-					XSetWindowBackground(dpy, locks[screen]->win, locks[screen]->colors[EMPTY]);
+				for (screen = 0; screen < nscreens; ++screen) {
+					XSetWindowBackground(dpy,
+					  locks[screen]->win,
+					  locks[screen]->colors[EMPTY]);
 					XClearWindow(dpy, locks[screen]->win);
 				}
 			}
 			llen = len;
 		} else if (rr && ev.type == rrevbase + RRScreenChangeNotify) {
-			XRRScreenChangeNotifyEvent *rre = (XRRScreenChangeNotifyEvent*)&ev;
-			for (screen = 0; screen < nscreens; screen++) {
+			XRRScreenChangeNotifyEvent *rre =
+			  (XRRScreenChangeNotifyEvent*) &ev;
+
+			for (screen = 0; screen < nscreens; ++screen) {
 				if (locks[screen]->win == rre->window) {
-					XResizeWindow(dpy, locks[screen]->win, rre->width, rre->height);
+					XResizeWindow(dpy, locks[screen]->win,
+					              rre->width, rre->height);
 					XClearWindow(dpy, locks[screen]->win);
 				}
 			}
-		} else for (screen = 0; screen < nscreens; screen++)
-			XRaiseWindow(dpy, locks[screen]->win);
+		} else {
+			for (screen = 0; screen < nscreens; ++screen)
+				XRaiseWindow(dpy, locks[screen]->win);
+		}
 	}
 }
 
@@ -151,6 +166,7 @@ pamconv(int num_msg, const struct pam_message **msg, struct pam_response **resp,
 		if (msg[i]->msg_style == PAM_PROMPT_ECHO_OFF) {
 			if ((resp[i]->resp = malloc(PASSLEN)) == NULL)
 				die("Not enough memory");
+
 			readpw((Display *) appdata_ptr, resp[i]->resp);
 		}
 		resp[i]->resp_retcode = 0;
@@ -166,7 +182,8 @@ unlockscreen(Display *dpy, Lock *lock)
 		return;
 
 	XUngrabPointer(dpy, CurrentTime);
-	XFreeColors(dpy, DefaultColormap(dpy, lock->screen), lock->colors, NUMCOLS, 0);
+	XFreeColors(dpy, DefaultColormap(dpy, lock->screen),
+	            lock->colors, NUMCOLS, 0);
 	XFreePixmap(dpy, lock->pmap);
 	XDestroyWindow(dpy, lock->win);
 
@@ -195,32 +212,49 @@ lockscreen(Display *dpy, int screen)
 
 	lock->root = RootWindow(dpy, lock->screen);
 
-	for (i = 0; i < NUMCOLS; i++) {
-		XAllocNamedColor(dpy, DefaultColormap(dpy, lock->screen), colorname[i], &color, &dummy);
+	for (i = 0; i < NUMCOLS; ++i) {
+		XAllocNamedColor(dpy, DefaultColormap(dpy, lock->screen),
+		                 colorname[i], &color, &dummy);
 		lock->colors[i] = color.pixel;
 	}
 
 	/* init */
 	wa.override_redirect = 1;
 	wa.background_pixel = lock->colors[INIT];
-	lock->win = XCreateWindow(dpy, lock->root, 0, 0, DisplayWidth(dpy, lock->screen), DisplayHeight(dpy, lock->screen),
-	                          0, DefaultDepth(dpy, lock->screen), CopyFromParent,
-	                          DefaultVisual(dpy, lock->screen), CWOverrideRedirect | CWBackPixel, &wa);
+	lock->win = XCreateWindow(dpy, lock->root, 0, 0,
+	                          DisplayWidth(dpy, lock->screen),
+	                          DisplayHeight(dpy, lock->screen),
+	                          0, DefaultDepth(dpy, lock->screen),
+	                          CopyFromParent,
+	                          DefaultVisual(dpy, lock->screen),
+	                          CWOverrideRedirect | CWBackPixel, &wa);
 	lock->pmap = XCreateBitmapFromData(dpy, lock->win, curs, 8, 8);
-	invisible = XCreatePixmapCursor(dpy, lock->pmap, lock->pmap, &color, &color, 0, 0);
+	invisible = XCreatePixmapCursor(dpy, lock->pmap, lock->pmap, &color,
+	                                &color, 0, 0);
 	XDefineCursor(dpy, lock->win, invisible);
 	XMapRaised(dpy, lock->win);
+
 	if (rr)
 		XRRSelectInput(dpy, lock->win, RRScreenChangeNotifyMask);
-	for (len = 1000; len; len--) {
-		if (XGrabPointer(dpy, lock->root, False, ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
-		    GrabModeAsync, GrabModeAsync, None, invisible, CurrentTime) == GrabSuccess)
+
+	for (len = 1000; len; --len) {
+		const int flags = ButtonPressMask |
+		                  ButtonReleaseMask |
+		                  PointerMotionMask;
+
+		if (XGrabPointer(dpy, lock->root, False, flags,
+		                 GrabModeAsync, GrabModeAsync, None, invisible,
+		                 CurrentTime)
+		      == GrabSuccess)
 			break;
 		usleep(1000);
 	}
+
 	if (len > 0) {
-		for (len = 1000; len; len--) {
-			if (XGrabKeyboard(dpy, lock->root, True, GrabModeAsync, GrabModeAsync, CurrentTime) == GrabSuccess)
+		for (len = 1000; len; --len) {
+			if (XGrabKeyboard(dpy, lock->root, True, GrabModeAsync,
+			                  GrabModeAsync, CurrentTime)
+			      == GrabSuccess)
 				break;
 			usleep(1000);
 		}
@@ -229,8 +263,7 @@ lockscreen(Display *dpy, int screen)
 	if (len <= 0) {
 		unlockscreen(dpy, lock);
 		lock = NULL;
-	}
-	else {
+	} else {
 		XSelectInput(dpy, lock->root, SubstructureNotifyMask);
 	}
 
@@ -245,7 +278,8 @@ usage(void)
 }
 
 int
-main(int argc, char **argv) {
+main(int argc, char **argv)
+{
 	pam_handle_t *pamh = NULL;
 	int pamret;
 	struct pam_conv conv;
@@ -253,7 +287,7 @@ main(int argc, char **argv) {
 	Display *dpy;
 	int screen;
 
-	if ((argc == 2) && !strcmp("-v", argv[1]))
+	if (argc == 2 && !strcmp("-v", argv[1]))
 		die("slock-pam, © 2006-2015 slock engineers\n");
 	else if (argc != 1)
 		usage();
@@ -267,23 +301,28 @@ main(int argc, char **argv) {
 
 	if (!(dpy = XOpenDisplay(0)))
 		die("slock: cannot open display\n");
+
 	rr = XRRQueryExtension(dpy, &rrevbase, &rrerrbase);
+
 	/* Get the number of screens in display "dpy" and blank them all. */
 	nscreens = ScreenCount(dpy);
 	locks = malloc(sizeof(Lock *) * nscreens);
 	if (locks == NULL)
 		die("slock: malloc: %s\n", strerror(errno));
+
 	int nlocks = 0;
-	for (screen = 0; screen < nscreens; screen++) {
-		if ( (locks[screen] = lockscreen(dpy, screen)) != NULL)
-			nlocks++;
+	for (screen = 0; screen < nscreens; ++screen) {
+		if ((locks[screen] = lockscreen(dpy, screen)) != NULL)
+			++nlocks;
 	}
+
 	XSync(dpy, False);
 
 	/* Did we actually manage to lock something? */
 	if (nlocks == 0) { /* nothing to protect */
 		free(locks);
 		XCloseDisplay(dpy);
+
 		return 1;
 	}
 
@@ -306,7 +345,7 @@ main(int argc, char **argv) {
 		pamh = NULL;
 
 	/* Password ok, unlock everything and quit. */
-	for (screen = 0; screen < nscreens; screen++)
+	for (screen = 0; screen < nscreens; ++screen)
 		unlockscreen(dpy, locks[screen]);
 
 	free(locks);
