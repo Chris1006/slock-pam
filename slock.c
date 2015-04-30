@@ -69,6 +69,19 @@ dontkillme(void)
 #endif
 
 static void
+blank(Display *dpy, int color)
+{
+	int screen;
+
+	for (screen = 0; screen < nscreens; ++screen) {
+		XSetWindowBackground(dpy,
+		  locks[screen]->win,
+		  locks[screen]->colors[color]);
+		XClearWindow(dpy, locks[screen]->win);
+	}
+}
+
+static void
 readpw(Display *dpy, char *passwd)
 {
 	char buf[32];
@@ -121,19 +134,9 @@ readpw(Display *dpy, char *passwd)
 			}
 
 			if (llen == 0 && len != 0) {
-				for (screen = 0; screen < nscreens; ++screen) {
-					XSetWindowBackground(dpy,
-					  locks[screen]->win,
-					  locks[screen]->colors[INPUT]);
-					XClearWindow(dpy, locks[screen]->win);
-				}
+				blank(dpy, INPUT);
 			} else if (llen != 0 && len == 0) {
-				for (screen = 0; screen < nscreens; ++screen) {
-					XSetWindowBackground(dpy,
-					  locks[screen]->win,
-					  locks[screen]->colors[EMPTY]);
-					XClearWindow(dpy, locks[screen]->win);
-				}
+				blank(dpy, EMPTY);
 			}
 			llen = len;
 		} else if (rr && ev.type == rrevbase + RRScreenChangeNotify) {
@@ -338,8 +341,14 @@ main(int argc, char **argv)
 	if (pamret != PAM_SUCCESS)
 		die("PAM not available");
 
-	do XBell(dpy, 100);
-	while ((pamret = pam_authenticate(pamh, 0)) != PAM_SUCCESS);
+	for (;;) {
+		pamret = pam_authenticate(pamh, 0);
+		if (pamret == PAM_SUCCESS)
+			break;
+
+		blank(dpy, EMPTY);
+		XBell(dpy, 100);
+        }
 
 	if (pam_end(pamh, pamret) != PAM_SUCCESS)
 		pamh = NULL;
