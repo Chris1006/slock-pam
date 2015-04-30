@@ -1,8 +1,6 @@
 /* See LICENSE file for license details. */
 #define _XOPEN_SOURCE 500
-#if HAVE_SHADOW_H
-#include <shadow.h>
-#endif
+#define PASSLEN 256
 
 #include <ctype.h>
 #include <errno.h>
@@ -12,16 +10,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <security/pam_appl.h>
 #include <sys/types.h>
 #include <X11/extensions/Xrandr.h>
 #include <X11/keysym.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
-#if HAVE_BSD_AUTH
-#include <login_cap.h>
-#include <bsd_auth.h>
-#endif
+#define PAM_REALM "login"
 
 enum {
 	INIT,
@@ -41,7 +37,6 @@ typedef struct {
 
 static Lock **locks;
 static int nscreens;
-static Bool running = True;
 static Bool rr;
 static int rrevbase;
 static int rrerrbase;
@@ -73,63 +68,22 @@ dontkillme(void)
 }
 #endif
 
-#ifndef HAVE_BSD_AUTH
-/* only run as root */
-static const char *
-getpw(void)
-{
-	const char *rval;
-	struct passwd *pw;
-
-	errno = 0;
-	pw = getpwuid(getuid());
-	if (!pw) {
-		if (errno)
-			die("slock: getpwuid: %s\n", strerror(errno));
-		else
-			die("slock: cannot retrieve password entry\n");
-	}
-	rval =  pw->pw_passwd;
-
-#if HAVE_SHADOW_H
-	if (rval[0] == 'x' && rval[1] == '\0') {
-		struct spwd *sp;
-		sp = getspnam(getenv("USER"));
-		if (!sp)
-			die("slock: cannot retrieve shadow entry (make sure to suid or sgid slock)\n");
-		rval = sp->sp_pwdp;
-	}
-#endif
-
-	/* drop privileges */
-	if (geteuid() == 0 &&
-	    ((getegid() != pw->pw_gid && setgid(pw->pw_gid) < 0) || setuid(pw->pw_uid) < 0))
-		die("slock: cannot drop privileges\n");
-	return rval;
-}
-#endif
-
 static void
-#ifdef HAVE_BSD_AUTH
-readpw(Display *dpy)
-#else
-readpw(Display *dpy, const char *pws)
-#endif
+readpw(Display *dpy, char *passwd)
 {
-	char buf[32], passwd[256];
+	char buf[32];
 	int num, screen;
 	unsigned int len, llen;
 	KeySym ksym;
 	XEvent ev;
 
 	len = llen = 0;
-	running = True;
 
 	/* As "slock" stands for "Simple X display locker", the DPMS settings
 	 * had been removed and you can set it with "xset" or some other
 	 * utility. This way the user can easily set a customized DPMS
 	 * timeout. */
-	while (running && !XNextEvent(dpy, &ev)) {
+	while (!XNextEvent(dpy, &ev)) {
 		if (ev.type == KeyPress) {
 			buf[0] = 0;
 			num = XLookupString(&ev.xkey, buf, sizeof buf, &ksym, 0);
@@ -148,15 +102,7 @@ readpw(Display *dpy, const char *pws)
 			switch (ksym) {
 			case XK_Return:
 				passwd[len] = 0;
-#ifdef HAVE_BSD_AUTH
-				running = !auth_userokay(getlogin(), NULL, "auth-xlock", passwd);
-#else
-				running = !!strcmp(crypt(passwd, pws), pws);
-#endif
-				if (running)
-					XBell(dpy, 100);
-				len = 0;
-				break;
+				return;
 			case XK_Escape:
 				len = 0;
 				break;
@@ -165,9 +111,10 @@ readpw(Display *dpy, const char *pws)
 					--len;
 				break;
 			default:
-				if (num && !iscntrl((int) buf[0]) && (len + num < sizeof passwd)) {
+				if (num && !iscntrl((int) buf[0]) && (len + num < PASSLEN)) {
 					memcpy(passwd + len, buf, num);
 					len += num;
+					passwd[len] = 0;
 				}
 				break;
 			}
@@ -194,6 +141,26 @@ readpw(Display *dpy, const char *pws)
 		} else for (screen = 0; screen < nscreens; screen++)
 			XRaiseWindow(dpy, locks[screen]->win);
 	}
+}
+
+static int
+pamconv(int num_msg, const struct pam_message **msg, struct pam_response **resp,
+        void *appdata_ptr)
+{
+	int i;
+
+	*resp = (struct pam_response *) calloc(num_msg, sizeof(struct pam_response));
+
+	for (i = 0; i < num_msg; ++i) {
+		if (msg[i]->msg_style == PAM_PROMPT_ECHO_OFF) {
+			if ((resp[i]->resp = malloc(PASSLEN)) == NULL)
+				die("Not enough memory");
+			readpw((Display *) appdata_ptr, resp[i]->resp);
+		}
+		resp[i]->resp_retcode = 0;
+	}
+
+	return PAM_SUCCESS;
 }
 
 static void
@@ -255,7 +222,7 @@ lockscreen(Display *dpy, int screen)
 			break;
 		usleep(1000);
 	}
-	if (running && (len > 0)) {
+	if (len > 0) {
 		for (len = 1000; len; len--) {
 			if (XGrabKeyboard(dpy, lock->root, True, GrabModeAsync, GrabModeAsync, CurrentTime) == GrabSuccess)
 				break;
@@ -263,8 +230,7 @@ lockscreen(Display *dpy, int screen)
 		}
 	}
 
-	running &= (len > 0);
-	if (!running) {
+	if (len <= 0) {
 		unlockscreen(dpy, lock);
 		lock = NULL;
 	}
@@ -284,14 +250,15 @@ usage(void)
 
 int
 main(int argc, char **argv) {
-#ifndef HAVE_BSD_AUTH
-	const char *pws;
-#endif
+	pam_handle_t *pamh = NULL;
+	int pamret;
+	struct pam_conv conv;
+	char *passwd = NULL;
 	Display *dpy;
 	int screen;
 
 	if ((argc == 2) && !strcmp("-v", argv[1]))
-		die("slock-%s, © 2006-2015 slock engineers\n", VERSION);
+		die("slock-pam, © 2006-2015 slock engineers\n");
 	else if (argc != 1)
 		usage();
 
@@ -301,10 +268,6 @@ main(int argc, char **argv) {
 
 	if (!getpwuid(getuid()))
 		die("slock: no passwd entry for you\n");
-
-#ifndef HAVE_BSD_AUTH
-	pws = getpw();
-#endif
 
 	if (!(dpy = XOpenDisplay(0)))
 		die("slock: cannot open display\n");
@@ -328,18 +291,30 @@ main(int argc, char **argv) {
 		return 1;
 	}
 
+	if ((passwd = malloc(PASSLEN)) == NULL)
+		die("Not enough memory");
+	passwd[0] = 0;
+
+	conv.conv = pamconv;
+	conv.appdata_ptr = dpy;
+
 	/* Everything is now blank. Now wait for the correct password. */
-#ifdef HAVE_BSD_AUTH
-	readpw(dpy);
-#else
-	readpw(dpy, pws);
-#endif
+	pamret = pam_start(PAM_REALM, getenv("USER"), &conv, &pamh);
+	if (pamret != PAM_SUCCESS)
+		die("PAM not available");
+
+	do XBell(dpy, 100);
+	while ((pamret = pam_authenticate(pamh, 0)) != PAM_SUCCESS);
+
+	if (pam_end(pamh, pamret) != PAM_SUCCESS)
+		pamh = NULL;
 
 	/* Password ok, unlock everything and quit. */
 	for (screen = 0; screen < nscreens; screen++)
 		unlockscreen(dpy, locks[screen]);
 
 	free(locks);
+	free(passwd);
 	XCloseDisplay(dpy);
 
 	return 0;

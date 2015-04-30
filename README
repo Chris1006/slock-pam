@@ -1,24 +1,24 @@
-slock - simple screen locker
-============================
-simple screen locker utility for X. 
+slock-pam - simple screen locker
+================================
+Simple screen locker utility for X that uses PAM for authentication.
 
 
 Requirements
 ------------
-In order to build slock you need the Xlib header files.
+In order to build slock-pam, you need the Xlib and PAM header files.
 
 
 Installation
 ------------
-Edit config.mk to match your local setup (slock is installed into
+Edit config.mk to match your local setup (slock-pam is installed into
 the /usr/local namespace by default).
 
-Afterwards enter the following command to build and install slock
+Afterwards, enter the following command to build and install slock-pam
 (if necessary as root):
 
     make clean install
 
 
-Running slock
--------------
-Simply invoke the 'slock' command. To get out of it, enter your password.
+Running slock-pam
+-----------------
+Invoke the 'slock' command.  Enter your password to unlock.
