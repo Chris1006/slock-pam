@@ -348,7 +348,7 @@ main(int argc, char **argv)
 
 		blank(dpy, EMPTY);
 		XBell(dpy, 100);
-        }
+	}
 
 	if (pam_end(pamh, pamret) != PAM_SUCCESS)
 		pamh = NULL;
