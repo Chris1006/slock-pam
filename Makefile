@@ -1,15 +1,15 @@
-# slock - simple screen locker
+# slock-pam - simple screen locker with PAM support.
 # See LICENSE file for copyright and license details.
 
 include config.mk
 
-SRC = slock.c
+SRC = slock-pam.c
 OBJ = ${SRC:.c=.o}
 
-all: options slock
+all: options slock-pam
 
 options:
-	@echo slock build options:
+	@echo slock-pam build options:
 	@echo "CFLAGS   = ${CFLAGS}"
 	@echo "LDFLAGS  = ${LDFLAGS}"
 	@echo "CC       = ${CC}"
@@ -24,31 +24,31 @@ config.h:
 	@echo creating $@ from config.def.h
 	@cp config.def.h $@
 
-slock: ${OBJ}
+slock-pam: ${OBJ}
 	@echo CC -o $@
 	@${CC} -o $@ ${OBJ} ${LDFLAGS}
 
 clean:
 	@echo cleaning
-	@rm -f slock ${OBJ} slock-${VERSION}.tar.gz
+	@rm -f slock-pam ${OBJ} slock-pam-${VERSION}.tar.gz
 
 dist: clean
 	@echo creating dist tarball
-	@mkdir -p slock-${VERSION}
-	@cp -R LICENSE Makefile README config.def.h config.mk ${SRC} slock-${VERSION}
-	@tar -cf slock-${VERSION}.tar slock-${VERSION}
-	@gzip slock-${VERSION}.tar
-	@rm -rf slock-${VERSION}
+	@mkdir -p slock-pam-${VERSION}
+	@cp -R LICENSE Makefile README config.def.h config.mk ${SRC} slock-pam-${VERSION}
+	@tar -cf slock-pam-${VERSION}.tar slock-pam-${VERSION}
+	@gzip slock-pam-${VERSION}.tar
+	@rm -rf slock-pam-${VERSION}
 
 install: all
 	@echo installing executable file to ${DESTDIR}${PREFIX}/bin
 	@mkdir -p ${DESTDIR}${PREFIX}/bin
-	@cp -f slock ${DESTDIR}${PREFIX}/bin
-	@chmod 755 ${DESTDIR}${PREFIX}/bin/slock
-	@chmod u+s ${DESTDIR}${PREFIX}/bin/slock
+	@cp -f slock-pam ${DESTDIR}${PREFIX}/bin
+	@chmod 755 ${DESTDIR}${PREFIX}/bin/slock-pam
+	@chmod u+s ${DESTDIR}${PREFIX}/bin/slock-pam
 
 uninstall:
 	@echo removing executable file from ${DESTDIR}${PREFIX}/bin
-	@rm -f ${DESTDIR}${PREFIX}/bin/slock
+	@rm -f ${DESTDIR}${PREFIX}/bin/slock-pam
 
 .PHONY: all options clean dist install uninstall

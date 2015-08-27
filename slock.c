@@ -276,7 +276,7 @@ lockscreen(Display *dpy, int screen)
 static void
 usage(void)
 {
-	fprintf(stderr, "usage: slock [-v]\n");
+	fprintf(stderr, "usage: slock-pam [-v]\n");
 	exit(1);
 }
 
@@ -300,10 +300,10 @@ main(int argc, char **argv)
 #endif
 
 	if (!getpwuid(getuid()))
-		die("slock: no passwd entry for you\n");
+		die("slock-pam: no passwd entry for you\n");
 
 	if (!(dpy = XOpenDisplay(0)))
-		die("slock: cannot open display\n");
+		die("slock-pam: cannot open display\n");
 
 	rr = XRRQueryExtension(dpy, &rrevbase, &rrerrbase);
 
@@ -311,7 +311,7 @@ main(int argc, char **argv)
 	nscreens = ScreenCount(dpy);
 	locks = malloc(sizeof(Lock *) * nscreens);
 	if (locks == NULL)
-		die("slock: malloc: %s\n", strerror(errno));
+		die("slock-pam: malloc: %s\n", strerror(errno));
 
 	int nlocks = 0;
 	for (screen = 0; screen < nscreens; ++screen) {

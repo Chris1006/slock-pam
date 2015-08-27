@@ -21,4 +21,4 @@ Afterwards, enter the following command to build and install slock-pam
 
 Running slock-pam
 -----------------
-Invoke the 'slock' command.  Enter your password to unlock.
+Invoke the 'slock-pam' command.  Enter your password to unlock.
