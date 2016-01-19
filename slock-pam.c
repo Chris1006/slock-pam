@@ -253,24 +253,30 @@ lockscreen(Display *dpy, int screen)
 		usleep(1000);
 	}
 
-	if (len > 0) {
-		for (len = 1000; len; --len) {
-			if (XGrabKeyboard(dpy, lock->root, True, GrabModeAsync,
-			                  GrabModeAsync, CurrentTime)
-			      == GrabSuccess)
-				break;
-			usleep(1000);
-		}
-	}
-
 	if (len <= 0) {
-		unlockscreen(dpy, lock);
-		lock = NULL;
-	} else {
-		XSelectInput(dpy, lock->root, SubstructureNotifyMask);
+		fprintf(stderr, "slock: unable to grab mouse pointer for screen %d\n",
+		        screen);
+
+    goto fail;
 	}
 
-	return lock;
+	for (len = 1000; len; --len) {
+		if (XGrabKeyboard(dpy, lock->root, True, GrabModeAsync,
+		                  GrabModeAsync, CurrentTime)
+		      == GrabSuccess) {
+			XSelectInput(dpy, lock->root, SubstructureNotifyMask);
+
+			return lock;
+		}
+		usleep(1000);
+	}
+
+	fprintf(stderr, "slock: unable to grab keyboard for screen %d\n", screen);
+
+fail:
+	unlockscreen(dpy, lock);
+
+	return NULL;
 }
 
 static void
