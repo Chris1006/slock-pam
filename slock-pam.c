@@ -17,8 +17,6 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
-#define PAM_REALM "login"
-
 enum {
 	INIT,
 	INPUT,
