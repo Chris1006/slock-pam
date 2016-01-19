@@ -61,6 +61,7 @@ dontkillme(void)
 	fd = open("/proc/self/oom_score_adj", O_WRONLY);
 	if (fd < 0 && errno == ENOENT)
 		return;
+
 	if (fd < 0 || write(fd, "-1000\n", 6) != 6 || close(fd) != 0)
 		die("cannot disable the out-of-memory killer for this process\n");
 }
@@ -179,7 +180,7 @@ pamconv(int num_msg, const struct pam_message **msg, struct pam_response **resp,
 static void
 unlockscreen(Display *dpy, Lock *lock)
 {
-	if(dpy == NULL || lock == NULL)
+	if (dpy == NULL || lock == NULL)
 		return;
 
 	XUngrabPointer(dpy, CurrentTime);
@@ -219,7 +220,6 @@ lockscreen(Display *dpy, int screen)
 		lock->colors[i] = color.pixel;
 	}
 
-	/* init */
 	wa.override_redirect = 1;
 	wa.background_pixel = lock->colors[INIT];
 	lock->win = XCreateWindow(dpy, lock->root, 0, 0,
@@ -239,14 +239,11 @@ lockscreen(Display *dpy, int screen)
 		XRRSelectInput(dpy, lock->win, RRScreenChangeNotifyMask);
 
 	for (len = 1000; len; --len) {
-		const int flags = ButtonPressMask |
-		                  ButtonReleaseMask |
-		                  PointerMotionMask;
+		const int flags = ButtonPressMask | ButtonReleaseMask | PointerMotionMask;
 
 		if (XGrabPointer(dpy, lock->root, False, flags,
 		                 GrabModeAsync, GrabModeAsync, None, invisible,
-		                 CurrentTime)
-		      == GrabSuccess)
+		                 CurrentTime) == GrabSuccess)
 			break;
 		usleep(1000);
 	}
@@ -260,8 +257,7 @@ lockscreen(Display *dpy, int screen)
 
 	for (len = 1000; len; --len) {
 		if (XGrabKeyboard(dpy, lock->root, True, GrabModeAsync,
-		                  GrabModeAsync, CurrentTime)
-		      == GrabSuccess) {
+		                  GrabModeAsync, CurrentTime) == GrabSuccess) {
 			XSelectInput(dpy, lock->root, SubstructureNotifyMask);
 
 			return lock;
