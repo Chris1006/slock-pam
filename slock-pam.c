@@ -276,8 +276,7 @@ fail:
 static void
 usage(void)
 {
-	fprintf(stderr, "usage: slock-pam [-v]\n");
-	exit(1);
+	fprintf(stderr, "usage: slock-pam [-v|POST_LOCK_CMD]\n");
 }
 
 int
@@ -292,8 +291,11 @@ main(int argc, char **argv)
 
 	if (argc == 2 && !strcmp("-v", argv[1]))
 		die("slock-pam, © 2006-2015 slock engineers\n");
-	else if (argc != 1)
+
+	if (argc != 1) {
 		usage();
+		exit(1);
+	}
 
 #ifdef __linux__
 	dontkillme();
