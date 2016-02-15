@@ -252,7 +252,7 @@ lockscreen(Display *dpy, int screen)
 		fprintf(stderr, "slock: unable to grab mouse pointer for screen %d\n",
 		        screen);
 
-    goto fail;
+		goto fail;
 	}
 
 	for (len = 1000; len; --len) {
@@ -292,10 +292,13 @@ main(int argc, char **argv)
 	if (argc == 2 && !strcmp("-v", argv[1]))
 		die("slock-pam, © 2006-2015 slock engineers\n");
 
-	if (argc != 1) {
+	if (argc == 2 && !strcmp("-h", argv[1])) {
 		usage();
 		exit(1);
 	}
+
+	/* Otherwise, if an argument is provided, assume it is a program to start
+	 * after the screen is locked, which we execute below. */
 
 #ifdef __linux__
 	dontkillme();
@@ -329,6 +332,25 @@ main(int argc, char **argv)
 		XCloseDisplay(dpy);
 
 		return 1;
+	}
+
+	/* The screen is locked.  If an argument was provided, it should be a program
+	 * to start at this point. */
+	if (argc >= 2) {
+		switch (fork()) {
+		case -1: /* Error */
+			die("fork %s failed: %s\n", argv[1], strerror(errno));
+
+		case 0: /* Child */
+			if (close(ConnectionNumber(dpy)) < 0)
+				die("slock: close: %s\n", strerror(errno));
+			execvp(argv[1], argv + 1);
+			die("execvp %s failed: %s\n", argv[1], strerror(errno));
+
+		default: /* Parent */
+			/* Nothing to do. */
+			;
+		}
 	}
 
 	if ((passwd = malloc(PASSLEN)) == NULL)
