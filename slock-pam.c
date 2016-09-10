@@ -332,12 +332,16 @@ main(int argc, char **argv)
 	for (screen = 0; screen < nscreens; ++screen) {
 		if ((locks[screen] = lockscreen(dpy, screen)) != NULL)
 			++nlocks;
+		else
+			break;
 	}
 
 	XSync(dpy, False);
 
-	/* Did we actually manage to lock something? */
-	if (nlocks == 0) { /* nothing to protect */
+	/* Did we actually manage to lock everything? */
+	if (nlocks != nscreens) { /* nothing to protect */
+		for (screen = 0; screen < nlocks; ++screen)
+			unlockscreen(dpy, locks[screen]);
 		free(locks);
 		XCloseDisplay(dpy);
 
