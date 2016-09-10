@@ -322,7 +322,7 @@ main(int argc, char **argv)
 
 	/* Get the number of screens in display "dpy" and blank them all. */
 	nscreens = ScreenCount(dpy);
-	locks = malloc(sizeof(Lock *) * nscreens);
+	locks = calloc(nscreens, sizeof(Lock *));
 	if (locks == NULL) {
 		XCloseDisplay(dpy);
 		die("slock-pam: malloc: %s\n", strerror(errno));
