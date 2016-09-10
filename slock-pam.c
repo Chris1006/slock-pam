@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 #include <security/pam_appl.h>
 #include <sys/types.h>
@@ -200,6 +201,7 @@ unlockscreen(Display *dpy, Lock *lock)
 static Lock *
 lockscreen(Display *dpy, int screen)
 {
+	const struct timespec retry_interval = {0, 1000000};
 	char curs[] = {0, 0, 0, 0, 0, 0, 0, 0};
 	unsigned int len;
 	int i;
@@ -250,7 +252,7 @@ lockscreen(Display *dpy, int screen)
 		                 GrabModeAsync, GrabModeAsync, None, invisible,
 		                 CurrentTime) == GrabSuccess)
 			break;
-		usleep(1000);
+		nanosleep(&retry_interval, NULL);
 	}
 
 	if (len <= 0) {
@@ -267,7 +269,7 @@ lockscreen(Display *dpy, int screen)
 
 			return lock;
 		}
-		usleep(1000);
+		nanosleep(&retry_interval, NULL);
 	}
 
 	fprintf(stderr, "slock: unable to grab keyboard for screen %d\n", screen);
