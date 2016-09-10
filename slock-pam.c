@@ -311,7 +311,7 @@ main(int argc, char **argv)
 	if (!getpwuid(getuid()))
 		die("slock-pam: no passwd entry for you\n");
 
-	if (!(dpy = XOpenDisplay(0)))
+	if (!(dpy = XOpenDisplay(NULL)))
 		die("slock-pam: cannot open display\n");
 
 	rr = XRRQueryExtension(dpy, &rrevbase, &rrerrbase);
