@@ -188,6 +188,7 @@ unlockscreen(Display *dpy, Lock *lock)
 		return;
 
 	XUngrabPointer(dpy, CurrentTime);
+	XUngrabKeyboard(dpy, CurrentTime);
 	XFreeColors(dpy, DefaultColormap(dpy, lock->screen),
 	            lock->colors, NUMCOLS, 0);
 	XFreePixmap(dpy, lock->pmap);
