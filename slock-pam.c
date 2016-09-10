@@ -17,6 +17,8 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
+#include "util.h"
+
 enum {
 	INIT,
 	INPUT,
@@ -113,14 +115,16 @@ readpw(Display *dpy, char *passwd)
 			switch (ksym) {
 			case XK_Return:
 				passwd[len] = 0;
+				explicit_bzero(&passwd, sizeof(passwd));
 
 				return;
 			case XK_Escape:
 				len = 0;
+				explicit_bzero(&passwd, sizeof(passwd));
 				break;
 			case XK_BackSpace:
 				if (len)
-					--len;
+					passwd[len--] = 0;
 				break;
 			default:
 				if (num && !iscntrl((int) buf[0])

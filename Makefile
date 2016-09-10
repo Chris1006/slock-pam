@@ -3,7 +3,7 @@
 
 include config.mk
 
-SRC = slock-pam.c
+SRC = slock-pam.c ${COMPATSRC}
 OBJ = ${SRC:.c=.o}
 
 all: options slock-pam

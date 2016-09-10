@@ -17,6 +17,7 @@ LIBS = -L/usr/lib -L/usr/lib64 -lc -L${X11LIB} -lX11 -lXrandr -lpam
 CPPFLAGS = -lpam
 CFLAGS = -std=c99 -pedantic -Wall -Os ${INCS} ${CPPFLAGS}
 LDFLAGS = -s ${LIBS}
+COMPATSRC = explicit_bzero.c
 
 # compiler and linker
 CC = cc
