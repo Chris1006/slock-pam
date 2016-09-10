@@ -280,7 +280,7 @@ fail:
 static void
 usage(void)
 {
-	fprintf(stderr, "usage: slock-pam [-v|POST_LOCK_CMD]\n");
+	fprintf(stderr, "usage: slock-pam [-v] [cmd [arg ...]]\n");
 }
 
 int
