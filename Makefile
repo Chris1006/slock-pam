@@ -45,7 +45,6 @@ install: all
 	@mkdir -p ${DESTDIR}${PREFIX}/bin
 	@cp -f slock-pam ${DESTDIR}${PREFIX}/bin
 	@chmod 755 ${DESTDIR}${PREFIX}/bin/slock-pam
-	@chmod u+s ${DESTDIR}${PREFIX}/bin/slock-pam
 
 uninstall:
 	@echo removing executable file from ${DESTDIR}${PREFIX}/bin

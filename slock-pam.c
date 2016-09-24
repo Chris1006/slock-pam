@@ -53,23 +53,6 @@ die(const char *errstr, ...)
 	exit(1);
 }
 
-#ifdef __linux__
-#include <fcntl.h>
-
-static void
-dontkillme(void)
-{
-	int fd;
-
-	fd = open("/proc/self/oom_score_adj", O_WRONLY);
-	if (fd < 0 && errno == ENOENT)
-		return;
-
-	if (fd < 0 || write(fd, "-1000\n", 6) != 6 || close(fd) != 0)
-		die("cannot disable the out-of-memory killer for this process\n");
-}
-#endif
-
 static void
 blank(Display *dpy, int color)
 {
@@ -307,10 +290,6 @@ main(int argc, char **argv)
 
 	/* Otherwise, if an argument is provided, assume it is a program to start
 	 * after the screen is locked, which we execute below. */
-
-#ifdef __linux__
-	dontkillme();
-#endif
 
 	if (!getpwuid(getuid()))
 		die("slock-pam: no passwd entry for you\n");
