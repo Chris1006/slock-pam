@@ -274,7 +274,7 @@ main(int argc, char **argv)
 {
 	pam_handle_t *pamh = NULL;
 	int pamret;
-	struct pam_conv conv;
+	struct pam_conv conv = {0};
 	Display *dpy;
 	int screen;
 
