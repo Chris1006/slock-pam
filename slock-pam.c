@@ -170,14 +170,30 @@ unlockscreen(Display *dpy, Lock *lock)
 	if (dpy == NULL || lock == NULL)
 		return;
 
-	XUngrabPointer(dpy, CurrentTime);
-	XUngrabKeyboard(dpy, CurrentTime);
 	XFreeColors(dpy, DefaultColormap(dpy, lock->screen),
 	            lock->colors, NUMCOLS, 0);
 	XFreePixmap(dpy, lock->pmap);
 	XDestroyWindow(dpy, lock->win);
 
 	free(lock);
+}
+
+static void
+unlockscreens(Display *dpy, int nscreens)
+{
+	int screen;
+
+	if (dpy == NULL || locks == NULL)
+		return;
+
+	XUngrabPointer(dpy, CurrentTime);
+	XUngrabKeyboard(dpy, CurrentTime);
+
+	for (screen = 0; screen < nscreens; ++screen)
+		unlockscreen(dpy, locks[screen]);
+
+	free(locks);
+	locks = NULL;
 }
 
 static Lock *
@@ -317,9 +333,7 @@ main(int argc, char **argv)
 
 	/* Did we actually manage to lock everything? */
 	if (nlocks != nscreens) { /* nothing to protect */
-		for (screen = 0; screen < nlocks; ++screen)
-			unlockscreen(dpy, locks[screen]);
-		free(locks);
+		unlockscreens(dpy, nlocks);
 		XCloseDisplay(dpy);
 
 		return 1;
@@ -365,10 +379,7 @@ main(int argc, char **argv)
 		pamh = NULL;
 
 	/* Password ok, unlock everything and quit. */
-	for (screen = 0; screen < nscreens; ++screen)
-		unlockscreen(dpy, locks[screen]);
-
-	free(locks);
+	unlockscreens(dpy, nscreens);
 	XCloseDisplay(dpy);
 
 	return 0;
