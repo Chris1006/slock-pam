@@ -364,7 +364,7 @@ main(int argc, char **argv)
 	/* Everything is now blank. Now wait for the correct password. */
 	pamret = pam_start(PAM_REALM, getenv("USER"), &conv, &pamh);
 	if (pamret != PAM_SUCCESS)
-		die("PAM not available");
+		die("slock: pam_start failed: %s\n", pam_strerror(pamh, pamret));
 
 	for (;;) {
 		pamret = pam_authenticate(pamh, 0);
@@ -375,8 +375,11 @@ main(int argc, char **argv)
 		XBell(dpy, 100);
 	}
 
-	if (pam_end(pamh, pamret) != PAM_SUCCESS)
-		pamh = NULL;
+	pamret = pam_end(pamh, pamret);
+	pamh = NULL;
+	if (pamret != PAM_SUCCESS)
+		fprintf(stderr, "slock: pam_end failed: %s\n",
+		        pam_strerror(NULL, pamret));
 
 	/* Password ok, unlock everything and quit. */
 	unlockscreens(dpy, nscreens);
