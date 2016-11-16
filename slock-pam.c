@@ -275,7 +275,6 @@ main(int argc, char **argv)
 	pam_handle_t *pamh = NULL;
 	int pamret;
 	struct pam_conv conv;
-	char *passwd = NULL;
 	Display *dpy;
 	int screen;
 
@@ -345,10 +344,6 @@ main(int argc, char **argv)
 		}
 	}
 
-	if ((passwd = malloc(PASSLEN)) == NULL)
-		die("Not enough memory");
-	passwd[0] = 0;
-
 	conv.conv = pamconv;
 	conv.appdata_ptr = dpy;
 
@@ -374,7 +369,6 @@ main(int argc, char **argv)
 		unlockscreen(dpy, locks[screen]);
 
 	free(locks);
-	free(passwd);
 	XCloseDisplay(dpy);
 
 	return 0;
