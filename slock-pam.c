@@ -99,12 +99,11 @@ readpw(Display *dpy, char *passwd)
 			switch (ksym) {
 			case XK_Return:
 				passwd[len] = 0;
-				explicit_bzero(&passwd, sizeof(passwd));
 
 				return;
 			case XK_Escape:
+				explicit_bzero(passwd, len);
 				len = 0;
-				explicit_bzero(&passwd, sizeof(passwd));
 				break;
 			case XK_BackSpace:
 				if (len)
