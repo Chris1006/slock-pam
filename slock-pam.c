@@ -140,6 +140,7 @@ readpw(Display *dpy, char *passwd)
 						              rre->width, rre->height);
 					}
 					XClearWindow(dpy, locks[screen]->win);
+					break;
 				}
 			}
 		} else {
