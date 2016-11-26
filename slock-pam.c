@@ -131,8 +131,14 @@ readpw(Display *dpy, char *passwd)
 
 			for (screen = 0; screen < nscreens; ++screen) {
 				if (locks[screen]->win == rre->window) {
-					XResizeWindow(dpy, locks[screen]->win,
-					              rre->width, rre->height);
+					if (rre->rotation == RR_Rotate_90 ||
+					    rre->rotation == RR_Rotate_270) {
+						XResizeWindow(dpy, locks[screen]->win,
+						              rre->height, rre->width);
+					} else {
+						XResizeWindow(dpy, locks[screen]->win,
+						              rre->width, rre->height);
+					}
 					XClearWindow(dpy, locks[screen]->win);
 				}
 			}
