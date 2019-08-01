@@ -367,12 +367,15 @@ main(int argc, char **argv)
 		die("slock: pam_start failed: %s\n", pam_strerror(pamh, pamret));
 
 	for (;;) {
+		const struct timespec retry_interval = {0, 100000000};
+
 		pamret = pam_authenticate(pamh, 0);
 		if (pamret == PAM_SUCCESS)
 			break;
 
 		blank(dpy, EMPTY);
 		XBell(dpy, 100);
+		nanosleep(&retry_interval, NULL);
 	}
 
 	pamret = pam_end(pamh, pamret);
